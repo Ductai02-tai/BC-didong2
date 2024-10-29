@@ -14,10 +14,10 @@ export default function FooterApp() {
 
   useEffect(() => {
     const loadResources = async () => {
-      await SplashScreen.preventAutoHideAsync(); // Ngăn màn hình splash tự ẩn
+      await SplashScreen.preventAutoHideAsync(); 
       await loadFonts();
       setFontsLoaded(true);
-      await SplashScreen.hideAsync(); // Ẩn màn hình splash sau khi tải xong
+      await SplashScreen.hideAsync(); 
     };
 
     loadResources();

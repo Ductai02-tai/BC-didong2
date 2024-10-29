@@ -37,7 +37,7 @@ interface Product {
 }
 
 const products: Product[] = [
-  { id: 1, title: 'Bò Bía', description: 'Delicious spring rolls', photo: require('@/assets/images/Sanpham1.png'), price: 100000 },
+  { id: 1, title: 'Bò pi tet', description: 'Delicious spring rolls', photo: require('@/assets/images/Sanpham1.png'), price: 10000 },
   { id: 2, title: 'Chả Cá/miếng', description: 'Fish cakes', photo: require('@/assets/images/Sản phẩm 2.png'), price: 150000 },
   { id: 3, title: 'Xíu Mại/Viên', description: 'Pork meatballs', photo: require('@/assets/images/Sanpham3.png'), price: 200000 },
   { id: 4, title: 'Bánh Tằm Bì Xíu Mại', description: 'Noodles with pork', photo: require('@/assets/images/Sanpham4.png'), price: 250000 },
