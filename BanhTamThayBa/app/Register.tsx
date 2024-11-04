@@ -1,20 +1,73 @@
 import React, { useState } from 'react';
-import { StyleSheet, Image, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, Image, View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import AuthService from './AuthService';
+
+ 
+type RootStackParamList = {
+  RegisterScreen: undefined;  
+  LoginScreen: undefined;   
+  
+};
+
+ 
+type RegisterScreenNavigationProp = NavigationProp<RootStackParamList, 'RegisterScreen'>;
 
 const Register: React.FC = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [successful, setSuccessful] = useState(false);
+  
+ 
+  const navigation = useNavigation<RegisterScreenNavigationProp>();
+
+  const handleRegister = async () => {
+ 
+    setMessage('');
+    setSuccessful(false);
+    
+   
+    if (username.length < 3 || username.length > 20) {
+      setMessage("Tên người dùng phải từ 3 đến 20 ký tự.");
+      return;
+    }
+    if (password.length < 6 || password.length > 40) {
+      setMessage("Mật khẩu phải từ 6 đến 40 ký tự.");
+      return;
+    }
+    if (!email.includes('@')) {
+      setMessage("Email không hợp lệ.");
+      return;
+    }
+    
+    try {
+      const response = await AuthService.register(username, email, password);
+      Alert.alert("Đăng ký thành công!");
+      
+      setUsername('');
+      setEmail('');
+      setPassword('');
+      setMessage('');  
+      setSuccessful(true);
+      
+      navigation.navigate('LoginScreen');  
+    } catch (error: any) {
+      const resMessage =
+        (error.response && error.response.data && error.response.data.message) ||
+        error.message ||
+        error.toString();
+      setMessage(resMessage);
+      setSuccessful(false);
+      Alert.alert("Đăng ký thất bại", resMessage);
+    }
+  };
 
   return (
     <View style={styles.container}>
-     
       <Image style={styles.logo} source={require('@/assets/images/logoba.png')} />
-
-       
       <Text style={styles.baseText}>ĐĂNG KÝ TÀI KHOẢN</Text>
-
- 
       <TextInput
         style={styles.input}
         placeholder="Username"
@@ -23,7 +76,6 @@ const Register: React.FC = () => {
         onChangeText={setUsername}
         autoCapitalize="none"
       />
-
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -33,7 +85,6 @@ const Register: React.FC = () => {
         keyboardType="email-address"
         autoCapitalize="none"
       />
-
       <TextInput
         style={styles.input}
         placeholder="Mật khẩu"
@@ -43,20 +94,22 @@ const Register: React.FC = () => {
         secureTextEntry
         autoCapitalize="none"
       />
-
-      <View style={styles.registerButton}>
+      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
         <Text style={styles.buttonText}>Đăng ký</Text>
-      </View>
-
+      </TouchableOpacity>
+      {message ? (
+        <Text style={successful ? styles.successText : styles.errorText}>{message}</Text>
+      ) : null}
       <Text style={styles.loginText}>
         Đã có tài khoản?{' '}
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('LoginScreen')}>
           <Text style={styles.textLogin}>Đăng nhập</Text>
         </TouchableOpacity>
       </Text>
     </View>
   );
-}
+};
+
 
 const styles = StyleSheet.create({
   container: {
@@ -109,6 +162,14 @@ const styles = StyleSheet.create({
   },
   textLogin: {
     color: 'red',
+  },
+  errorText: {
+    color: 'red',
+    marginTop: 10,
+  },
+  successText: {
+    color: 'green',
+    marginTop: 10,
   },
 });
 

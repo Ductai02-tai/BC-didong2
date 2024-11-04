@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Modal, Dimensions, FlatList } from 'react-native';
 import axios from 'axios';
 import { useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import RelatedProducts from './related'; // Import RelatedProducts
 
 const { width } = Dimensions.get('window');
 
@@ -25,36 +26,32 @@ const ProductDetailScreen = () => {
   const [error, setError] = useState('');
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [quantity, setQuantity] = useState<number>(1);  
-  const [imageUrl, setImageUrl] = useState<string | null>(null); // Cập nhật state imageUrl
+  const [imageUrl, setImageUrl] = useState<string | null>(null); 
 
   const toggleMenu = () => {
     setMenuVisible(!isMenuVisible);
   };
 
+  // Declare token here to make it accessible to the footer component
+  const token = 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzA3MjkyOTcsImV4cCI6MTczMDgxNTY5N30._VOd8hFRe7W8wQpgYxoCRJIW9-fTLyHUz_cHBRBrH04'; // Replace with your actual token
+
   useEffect(() => {
     const fetchProductDetail = async () => {
       try {
-        const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzAxODI2ODAsImV4cCI6MTczMDI2OTA4MH0.KdtED1VAbDANLe1fDPswIRhmR3HSLL_hdAqe4lXtw7k'; 
-        const response = await axios.get(`http://172.20.10.8:8080/api/product/${productId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const productResponse = await axios.get(`http://172.20.10.8:8080/api/product/${productId}`, {
+          headers: { Authorization: token }
         });
+        setProduct(productResponse.data);
 
-        setProduct(response.data);
-
-        // Gọi API để lấy ảnh sản phẩm
         const imageResponse = await axios.get(
           `http://172.20.10.8:8080/api/product/${productId}/image`,
-          { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" }
+          { headers: { Authorization: token }, responseType: "blob" }
         );
-
         const imageBlob = URL.createObjectURL(imageResponse.data);
-        setImageUrl(imageBlob);  
-
+        setImageUrl(imageBlob);
       } catch (error) {
-        console.error('Error fetching product detail:', error);
-        setError('Error fetching product detail');
+        console.error('Error fetching data:', error);
+        setError('Error fetching product detail or related products');
       }
     };
 
@@ -87,39 +84,13 @@ const ProductDetailScreen = () => {
     }
   };
 
-  return (
-    <View style={{ flex: 1 }}>
-      <View style={styles.header}>
-        <Image source={require('@/assets/images/logoba.png')} style={styles.Logo} />
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => navigation.navigate('CartScreen')}>
-            <Ionicons name="cart-outline" size={24} color="white" style={{ marginLeft: 15 }} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={toggleMenu}>
-            <Ionicons name="menu-outline" size={30} color="yellow" style={{ marginLeft: 15 }} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    
-      <Modal transparent={true} visible={isMenuVisible} animationType="slide">
-        <TouchableOpacity style={styles.modalBackground} onPress={toggleMenu}>
-          <View style={styles.menu}>
-            <Text style={styles.menuItem}>TRANG CHỦ</Text>
-            <Text style={styles.menuItem}>SẢN PHẨM</Text>
-            <Text style={styles.menuItem}>GIỚI THIỆU</Text>
-            <Text style={styles.menuItem}>LIÊN HỆ</Text>
-            <Text style={styles.menuItem}>TUYỂN DỤNG</Text>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Kiểm tra và chỉ render ảnh nếu imageUrl không trống */}
+  const renderProductDetail = () => (
+    <View style={styles.productDetailContainer}>
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={styles.productImage} />
       ) : (
         <Text>Không có ảnh sản phẩm</Text>
       )}
-
       <Text style={styles.productTitle}>{product.name}</Text>
       <Text style={styles.productPrice}>
         {parseFloat(product.price).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
@@ -135,16 +106,49 @@ const ProductDetailScreen = () => {
         </TouchableOpacity>
       </View>
       <TouchableOpacity style={styles.orderButton}>
-        <Text style={styles.orderButtonText}>Đặt món</Text>
+        <Text style={styles.orderButtonText}>Đặt hàng</Text>
       </TouchableOpacity>
     </View>
   );
-};
 
+  return (
+    <FlatList
+      data={[product]}  
+      renderItem={renderProductDetail}  
+      keyExtractor={(item) => item.id.toString()}  
+      ListHeaderComponent={
+        <>
+          <View style={styles.header}>
+            <Image source={require('@/assets/images/logoba.png')} style={styles.Logo} />
+            <View style={styles.headerRight}>
+              <TouchableOpacity onPress={() => navigation.navigate('CartScreen')}>
+                <Ionicons name="cart-outline" size={24} color="white" style={{ marginLeft: 15 }} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleMenu}>
+                <Ionicons name="menu-outline" size={30} color="yellow" style={{ marginLeft: 15 }} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <Modal transparent={true} visible={isMenuVisible} animationType="slide">
+            <TouchableOpacity style={styles.modalBackground} onPress={toggleMenu}>
+              <View style={styles.menu}>
+                <Text style={styles.menuItem}>TRANG CHỦ</Text>
+                <Text style={styles.menuItem}>SẢN PHẨM</Text>
+                <Text style={styles.menuItem}>GIỚI THIỆU</Text>
+                <Text style={styles.menuItem}>LIÊN HỆ</Text>
+                <Text style={styles.menuItem}>TUYỂN DỤNG</Text>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        </>
+      }
+      ListFooterComponent={<RelatedProducts productId={Number(productId)} />}  
+      contentContainerStyle={{ flexGrow: 1 }}
+    />
+  );
+};
 const styles = StyleSheet.create({
-  container: {
-    padding: 10,
-  },
+  container: { flex: 1, padding: 16 },
   header: {
     height: 75,
     backgroundColor: 'black',
@@ -209,6 +213,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginVertical: 8,
     marginLeft: 16,
+  },
+  productDetailContainer: {
+    marginBottom: 20,
+   
   },
   quantityContainer: {
     flexDirection: 'row',

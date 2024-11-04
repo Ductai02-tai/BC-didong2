@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import AuthService from '../AuthService'; // Import AuthService
 import {
   View,
   Text,
@@ -50,17 +51,12 @@ export default function HomeScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const navigation = useNavigation<NavigationProp<any>>();
   const [fontsLoaded, setFontsLoaded] = useState(false);
-  
-  
-
   const toggleMenu = () => {
     setMenuVisible(!isMenuVisible);
   };
-
   const toggleSearch = () => {
     setSearchVisible(!isSearchVisible);
   };
-
   useEffect(() => {
     const loadResources = async () => {
       await SplashScreen.preventAutoHideAsync();  
@@ -68,10 +64,8 @@ export default function HomeScreen() {
       setFontsLoaded(true);
       await SplashScreen.hideAsync();  
     };
-
     loadResources(); 
   }, []);
-
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBanner((prevBanner) => {
@@ -82,14 +76,11 @@ export default function HomeScreen() {
         return nextBanner;
       });
     }, 4000);
-
     return () => clearInterval(interval);
   }, []);
-
   if (!fontsLoaded) {
     return null;  
   }
-
   const renderProduct = ({ item }: { item: Product }) => (
     <View style={styles.productContainer}>
       <Image source={item.photo} style={styles.productImage} />
@@ -102,7 +93,6 @@ export default function HomeScreen() {
       </View>
     </View>
   );
-
   return (
     <SafeAreaView style={{ flex: 1 }}>
       {/* Header */}
@@ -120,14 +110,12 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
-
       {/* Search Bar */}
       {isSearchVisible && (
         <View style={styles.searchBar}>
           <TextInput placeholder="Tìm kiếm..." style={styles.searchInput} placeholderTextColor="#999" />
         </View>
       )}
-
       <Modal transparent={true} visible={isMenuVisible} animationType="slide">
         <TouchableOpacity style={styles.modalBackground} onPress={toggleMenu}>
           <View style={styles.menu}>
@@ -139,12 +127,11 @@ export default function HomeScreen() {
               <Text style={styles.menuItem}>SẢN PHẨM</Text>
             </TouchableOpacity>
             <Text style={styles.menuItem}>GIỚI THIỆU</Text>
-            <Text style={styles.menuItem}>LIÊN HỆ</Text>
+ 
             <Text style={styles.menuItem}>TUYỂN DỤNG</Text>
           </View>
         </TouchableOpacity>
       </Modal>
-
       {/* Main Content */}
       <FlatList
         data={products}
@@ -175,7 +162,6 @@ export default function HomeScreen() {
                 <Image source={require('@/assets/images/img_icon_home_welcome_3.png')} style={styles.iconImage} />
               </View>
             </View>
-
             <View style={styles.buttonContainer}>
               <Text style={styles.descriptionText}>
                 Mở cửa 6:00 - 21:30 hằng ngày tại địa chỉ 344 Tên Lửa, Phường Bình Trị Đông B, Quận Bình Tân, Tp.HCM
@@ -183,13 +169,11 @@ export default function HomeScreen() {
               <TouchableOpacity style={styles.exploreButton}>
                 <Text style={styles.buttonText}>Đặt Món ngay</Text>
               </TouchableOpacity>
-
               <View style={styles.bannerSection}>
                 <Image source={require('@/assets/images/img_home_banner_1.png')} style={styles.homeBanner} />
                 <Image source={require('@/assets/images/img_home_banner_3.png')} style={styles.homeBanner} />
               </View>
             </View>
-
             {/* Menu Section */}
             {<MenuCate />}  
      {/* Banner with Button */}
@@ -199,7 +183,6 @@ export default function HomeScreen() {
                 <Text style={styles.seeMoreButtonText}>Xem thêm</Text>
               </TouchableOpacity>
             </View>
-
             <Text style={styles.featuredText}>
               Sản Phẩm <Text style={styles.textYellow}> Bán Chạy</Text>
             </Text>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, FlatList, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal } from 'react-native';
+import { View, Text, Image, FlatList, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, ToastAndroid } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import axios from 'axios';
@@ -7,8 +7,9 @@ import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { TextInput } from 'react-native-gesture-handler';
-import { GestureHandlerRootView,  } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+// Load custom fonts
 const loadFonts = async () => {
   await Font.loadAsync({
     'Refile': require('./../assets/fonts/Refile.otf'),
@@ -17,49 +18,65 @@ const loadFonts = async () => {
 
 const { width } = Dimensions.get('window');
 
+// Define types
 type Product = {
   id: number;
   name: string;
-  price: string; 
-  imageUrl?: string;  
+  price: string;
+  imageUrl?: string;
 };
 
+type CartItem = Product & { quantity: number };
+
 interface Category {
-  id: number; 
+  id: number;
   title: string;
 }
 
 type RootStackParamList = {
   ProductDetailScreen: { productId: number };
-  CartScreen: undefined;
+  CartScreen: { cartItems: CartItem[] };
 };
 
 export default function ProductList() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'ProductDetailScreen'>>();
   const [isMenuVisible, setMenuVisible] = useState(false);
- 
-  const [products, setProducts] = useState<Product[]>([]);  
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState('');
   const scrollViewRef = useRef<ScrollView>(null);
   const [fontsLoaded, setFontsLoaded] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');  
-  const [isSearchVisible, setSearchVisible] = useState(false); 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchVisible, setSearchVisible] = useState(false);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+  // Toggle search bar visibility
   const toggleSearch = () => {
-    setSearchVisible(!isSearchVisible);  
+    setSearchVisible(!isSearchVisible);
     if (isSearchVisible) {
-      setSearchTerm(''); // Reset search term khi đóng tìm kiếm
-      setSearchResults([]); // Reset kết quả tìm kiếm khi đóng tìm kiếm
+      setSearchTerm('');
+      setSearchResults([]);
     }
   };
 
+  // Toggle menu visibility
   const toggleMenu = () => {
     setMenuVisible(!isMenuVisible);
   };
 
-   
+  // Add product to cart and show confirmation message
+  const addToCart = (product: Product) => {
+    setCartItems((prevItems) => {
+      const existingItem = prevItems.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevItems.map(item =>
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      ToastAndroid.show('Đã thêm vào giỏ hàng', ToastAndroid.SHORT);
+      return [...prevItems, { ...product, quantity: 1 }];
+    });
+  };
 
   useEffect(() => {
     const loadResources = async () => {
@@ -68,86 +85,24 @@ export default function ProductList() {
         await loadFonts();
         setFontsLoaded(true);
         await SplashScreen.hideAsync();
+        fetchProducts(); 
       } catch (e) {
         console.warn(e);
       }
     };
-
     loadResources();
   }, []);
 
+  // Fetch products from API
   const fetchProducts = async () => {
-    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzAxODI2ODAsImV4cCI6MTczMDI2OTA4MH0.KdtED1VAbDANLe1fDPswIRhmR3HSLL_hdAqe4lXtw7k';
+    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzA3MjkyOTcsImV4cCI6MTczMDgxNTY5N30._VOd8hFRe7W8wQpgYxoCRJIW9-fTLyHUz_cHBRBrH04'; // Replace with your actual token
     try {
       const response = await axios.get<Product[]>('http://172.20.10.8:8080/api/products', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-  
       const productsWithImages = await Promise.all(response.data.map(async (product: Product) => {
-        try {
-          const imageResponse = await axios.get(
-            `http://172.20.10.8:8080/api/product/${product.id}/image`,
-            { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" }
-          );
-          const imageUrl = URL.createObjectURL(imageResponse.data);
-          return { ...product, imageUrl }; 
-        } catch (error) {
-          console.error("Error fetching image for product ID:", product.id, error);
-          return { ...product, imageUrl: "placeholder-image-url" };  
-        }
-      }));
-  
-      setProducts(productsWithImages);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setError('Error fetching products');
-    }
-  };
-
-const fetchCategories = async () => {
-  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzAxODI2ODAsImV4cCI6MTczMDI2OTA4MH0.KdtED1VAbDANLe1fDPswIRhmR3HSLL_hdAqe4lXtw7k';
-  
-  try {
-    const response = await axios.get('http://172.20.10.8:8080/api/categories', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    setCategories(response.data);
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    setError('Error fetching categories');
-  }
-};
-
-useEffect(() => {
-  fetchProducts();
-  fetchCategories();
-}, []);
-
-const handleSearch = async () => {
-  if (searchTerm.trim() === '') {
-    // Fetch all products when search term is cleared
-    setSearchResults([]); 
-    fetchProducts();
-    return;
-  }
-
-  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzAxODI2ODAsImV4cCI6MTczMDI2OTA4MH0.KdtED1VAbDANLe1fDPswIRhmR3HSLL_hdAqe4lXtw7k';
-
-  try {
-    const response = await axios.get<Product[]>(
-      `http://172.20.10.8:8080/api/products/search?keyword=${encodeURIComponent(searchTerm)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    const productsWithImages = await Promise.all(
-      response.data.map(async (product: Product) => {
         try {
           const imageResponse = await axios.get(
             `http://172.20.10.8:8080/api/product/${product.id}/image`,
@@ -159,115 +114,136 @@ const handleSearch = async () => {
           console.error("Error fetching image for product ID:", product.id, error);
           return { ...product, imageUrl: "placeholder-image-url" };
         }
-      })
-    );
-    setProducts(productsWithImages);
-  } catch (error) {
-    console.error('Error searching products:', error);
-    setError('Error searching products');
-  }
-};
+      }));
+      setProducts(productsWithImages);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setError('Error fetching products');
+    }
+  };
 
-  
-  
+  // Handle search functionality
+  const handleSearch = async () => {
+    if (searchTerm.trim() === '') {
+      setSearchResults([]);
+      fetchProducts();
+      return;
+    }
+    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzA3MjkyOTcsImV4cCI6MTczMDgxNTY5N30._VOd8hFRe7W8wQpgYxoCRJIW9-fTLyHUz_cHBRBrH04'; // Replace with your actual token
+    try {
+      const response = await axios.get<Product[]>(`http://172.20.10.8:8080/api/products/search?keyword=${encodeURIComponent(searchTerm)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const productsWithImages = await Promise.all(
+        response.data.map(async (product: Product) => {
+          try {
+            const imageResponse = await axios.get(
+              `http://172.20.10.8:8080/api/product/${product.id}/image`,
+              { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" }
+            );
+            const imageUrl = URL.createObjectURL(imageResponse.data);
+            return { ...product, imageUrl };
+          } catch (error) {
+            console.error("Error fetching image for product ID:", product.id, error);
+            return { ...product, imageUrl: "placeholder-image-url" };
+          }
+        })
+      );
+
+      setSearchResults(productsWithImages);
+    } catch (error) {
+      console.error('Error searching products:', error);
+      setError('Error searching products');
+    }
+  };
+
   if (!fontsLoaded) {
     return null;
   }
 
-  const renderProduct = ({ item }: { item: Product }) => {
-    return (
-      <TouchableOpacity
-        style={styles.productContainer}
-        onPress={() => navigation.navigate('ProductDetailScreen', { productId: item.id })}
-      >
-        {item.imageUrl ? (
-          <Image
-            source={{ uri: item.imageUrl }}  
-            style={styles.productImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.placeholderImage} />
-        )}
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <View style={styles.productDetails}>
-            <Text style={styles.productPrice}>
-              {parseFloat(item.price).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-            </Text>
-            <TouchableOpacity style={styles.orderButton}>
-              <Text style={styles.orderButtonText}>Đặt món +</Text>
-            </TouchableOpacity>
-          </View>
+  // Render product item
+  const renderProduct = ({ item }: { item: Product }) => (
+    <TouchableOpacity
+      style={styles.productContainer}
+      onPress={() => navigation.navigate('ProductDetailScreen', { productId: item.id })}
+    >
+      {item.imageUrl ? (
+        <Image
+          source={{ uri: item.imageUrl }}
+          style={styles.productImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={styles.placeholderImage} />
+      )}
+      <View style={styles.productInfo}>
+        <Text style={styles.productName}>{item.name}</Text>
+        <View style={styles.productDetails}>
+          <Text style={styles.productPrice}>
+            {parseFloat(item.price).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+          </Text>
+          <TouchableOpacity style={styles.orderButton} onPress={() => addToCart(item)}>
+            <Text style={styles.orderButtonText}>Đặt món +</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
-    );
-  };
+      </View>
+    </TouchableOpacity>
+  );
 
-   return (
+  return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>
-          <Image source={require('@/assets/images/logoba.png')} style={styles.Logo} />
+          <Image source={require('./../assets/images/logoba.png')} style={styles.Logo} />
           <View style={styles.headerRight}>
-             {/* Icon tìm kiếm */}
-             <TouchableOpacity onPress={toggleSearch}>
+            <TouchableOpacity onPress={toggleSearch}>
               <Ionicons name="search-outline" size={24} color="white" style={{ marginLeft: 15 }} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('CartScreen')}>
+            <TouchableOpacity onPress={() => navigation.navigate('CartScreen', { cartItems })}>
               <Ionicons name="cart-outline" size={24} color="white" style={{ marginLeft: 15 }} />
             </TouchableOpacity>
             <TouchableOpacity onPress={toggleMenu}>
               <Ionicons name="menu-outline" size={30} color="yellow" style={{ marginLeft: 15 }} />
             </TouchableOpacity>
-           
           </View>
         </View>
-
-        {/* Search Bar */}
-        {isSearchVisible && (
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Tìm kiếm sản phẩm..."
-            value={searchTerm}
-            onChangeText={setSearchTerm}
-            onSubmitEditing={handleSearch} // Gọi hàm tìm kiếm khi người dùng submit
-          />
-        )}
-
-        <Modal transparent={true} visible={isMenuVisible} animationType="slide">
-          <TouchableOpacity style={styles.modalBackground} onPress={toggleMenu}>
-            <View style={styles.menu}>
-              <Text style={styles.menuItem}>TRANG CHỦ</Text>
-              <Text style={styles.menuItem}>SẢN PHẨM</Text>
-              <Text style={styles.menuItem}>GIỚI THIỆU</Text>
-              <Text style={styles.menuItem}>LIÊN HỆ</Text>
-              <Text style={styles.menuItem}>TUYỂN DỤNG</Text>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-
         {/* Product Title */}
         <Text style={styles.productTitle}>
           Tất Cả <Text style={styles.textYellow}> Sản Phẩm</Text>
         </Text>
-
+        {/* Search Bar */}
+        {isSearchVisible && (
+          <>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Tìm kiếm sản phẩm..."
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              onSubmitEditing={handleSearch}
+            />
+            {searchResults.length > 0 && (
+              <Text style={styles.searchResultText}>
+                Kết quả tìm kiếm cho: "{searchTerm}"
+              </Text>
+            )}
+          </>
+        )}
+        {/* Product List */}
         <FlatList
-          data={products}
+          data={searchResults.length > 0 ? searchResults : products}
           renderItem={renderProduct}
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
           contentContainerStyle={styles.container}
         />
-
-        {/* Optional: Display error message */}
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
     </GestureHandlerRootView>
   );
 }
-
 
 
 const styles = StyleSheet.create({
@@ -379,7 +355,19 @@ const styles = StyleSheet.create({
   searchInput: {
     backgroundColor: '#fff',
     borderRadius: 25,
-    padding: 7,
+    padding: 8,
+    alignItems: 'center',
+     marginRight: 30,
+     marginLeft: 30,
+
+  },
+  
+  searchResultText: {
+    fontSize: 16,
+    fontFamily: 'Refile',
+    color: 'gray',
+    marginVertical: 10,
+    textAlign: 'center',
   },
   modalBackground: {
     flex: 1,

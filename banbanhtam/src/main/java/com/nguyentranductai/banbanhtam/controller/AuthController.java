@@ -23,6 +23,7 @@ import com.nguyentranductai.banbanhtam.dto.LoginDto;
 import com.nguyentranductai.banbanhtam.model.ERole;
 import com.nguyentranductai.banbanhtam.model.Role;
 import com.nguyentranductai.banbanhtam.model.User;
+import com.nguyentranductai.banbanhtam.payload.request.ChangePasswordRequest;
 import com.nguyentranductai.banbanhtam.payload.request.LoginRequest;
 import com.nguyentranductai.banbanhtam.payload.request.SignupRequest;
 import com.nguyentranductai.banbanhtam.payload.response.JwtResponse;
@@ -31,6 +32,11 @@ import com.nguyentranductai.banbanhtam.repository.RoleRepository;
 import com.nguyentranductai.banbanhtam.repository.UserRepository;
 import com.nguyentranductai.banbanhtam.security.jwt.JwtUtils;
 import com.nguyentranductai.banbanhtam.security.services.UserDetailsImpl;
+import com.nguyentranductai.banbanhtam.payload.request.EmailRequest; // Thêm import này
+import com.nguyentranductai.banbanhtam.payload.request.OtpRequest; // Thêm import này
+import com.nguyentranductai.banbanhtam.payload.request.ResetPasswordRequest;
+import com.nguyentranductai.banbanhtam.security.services.EmailService; // Thêm import này
+import com.nguyentranductai.banbanhtam.security.services.OtpService; // Thêm import này
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -46,6 +52,10 @@ public class AuthController {
     PasswordEncoder encoder;
     @Autowired
     JwtUtils jwtUtils;
+    @Autowired
+    private OtpService otpService; // Thêm
+    @Autowired
+    private EmailService emailService; // Thêm
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -119,5 +129,62 @@ public class AuthController {
         String response = "You have successfully logged in!";
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+//
+@PostMapping("/change-password")
+public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+    User user = userRepository.findByUsername(userDetails.getUsername())
+                              .orElseThrow(() -> new RuntimeException("Error: User not found."));
+
+ 
+    if (!encoder.matches(changePasswordRequest.getCurrentPassword(), user.getPassword())) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new MessageResponse("Error: Current password is incorrect."));
+    }
+
+ 
+    user.setPassword(encoder.encode(changePasswordRequest.getNewPassword()));
+    userRepository.save(user);
+
+    return ResponseEntity.ok(new MessageResponse("Password changed successfully!"));
+}
+//
+@PostMapping("/request-otp")
+public ResponseEntity<?> requestOtp(@RequestBody EmailRequest request) {
+    String otp = otpService.generateOtp(request.getEmail());
+    emailService.sendOtpEmail(request.getEmail(), otp);
+    return ResponseEntity.ok("OTP đã được gửi về email của bạn.");
+}
+
+@PostMapping("/verify-otp")
+public ResponseEntity<?> verifyOtp(@RequestBody OtpRequest request) {
+    boolean isValidOtp = otpService.validateOtp(request.getEmail(), request.getOtp());
+    if (isValidOtp) {
+        return ResponseEntity.ok("Mã OTP hợp lệ.");
+    } else {
+        return ResponseEntity.badRequest().body("Mã OTP không hợp lệ hoặc đã hết hạn.");
+    }
+}
+//
+@PostMapping("/reset-password")
+public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
+    // Kiểm tra xem email có tồn tại không
+    User user = userRepository.findByEmail(resetPasswordRequest.getEmail())
+            .orElseThrow(() -> new RuntimeException("Error: User not found."));
+
+    // Kiểm tra mã OTP
+    boolean isValidOtp = otpService.validateOtp(resetPasswordRequest.getEmail(), resetPasswordRequest.getOtp());
+    if (!isValidOtp) {
+        return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid or expired OTP."));
+    }
+
+    // Cập nhật mật khẩu
+    user.setPassword(encoder.encode(resetPasswordRequest.getNewPassword()));
+    userRepository.save(user);
+
+    return ResponseEntity.ok(new MessageResponse("Password reset successfully!"));
+}
 
 }

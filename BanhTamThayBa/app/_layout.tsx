@@ -7,7 +7,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+ 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -34,7 +34,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="ProductDetailScreen"
           options={{
-            headerTitle: '', // Ẩn chữ "ProductDetail"
+            headerTitle: '', 
            
          
           }}
@@ -43,7 +43,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="CartScreen"
           options={{
-            headerTitle: '', // Ẩn chữ "ProductDetail"
+            headerTitle: '',  
            
          
           }}
@@ -53,13 +53,37 @@ export default function RootLayout() {
 <Stack.Screen
           name="ProductList"
           options={{
-            headerTitle: '', // Ẩn chữ "ProductDetail"
+            headerTitle: '',  
+         
+          }}
+        />
+ <Stack.Screen
+          name="LoginScreen"
+          options={{
+            headerTitle: '',  
            
          
           }}
           
         />
-
+        <Stack.Screen
+          name="ChangePasswordScreen"
+          options={{
+            headerTitle: '',  
+           
+         
+          }}
+          
+        />
+          <Stack.Screen
+          name="Register"
+          options={{
+            headerTitle: '',  
+           
+         
+          }}
+          
+        />
       </Stack>
 
       

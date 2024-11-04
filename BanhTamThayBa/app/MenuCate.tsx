@@ -41,7 +41,7 @@ export default function MenuCate() {
   const [error, setError] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);  
 
-  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzAxODI2ODAsImV4cCI6MTczMDI2OTA4MH0.KdtED1VAbDANLe1fDPswIRhmR3HSLL_hdAqe4lXtw7k';  
+  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZ3V5ZW5uZ3V5ZW5kdWN0YWkiLCJpYXQiOjE3MzA3MjkyOTcsImV4cCI6MTczMDgxNTY5N30._VOd8hFRe7W8wQpgYxoCRJIW9-fTLyHUz_cHBRBrH04';  
 
   const fetchCategories = async () => {
     try {
